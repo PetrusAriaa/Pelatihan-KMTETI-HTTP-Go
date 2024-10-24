@@ -1,32 +1,15 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
-	"math/rand"
 	"net/http"
+
+	"github.com/PetrusAriaa/go-backend-pelatihan-kmteti/src/db"
+	"github.com/PetrusAriaa/go-backend-pelatihan-kmteti/src/model"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-type Product struct {
-	Id    int    `json:"id"`
-	Name  string `json:"name"`
-	Price int    `json:"price"`
-	Stock uint8  `json:"stock"`
-}
-
-var ProdList []*Product = []*Product{
-	{
-		Id:    1,
-		Name:  "Tepung",
-		Price: 15000,
-		Stock: 32,
-	},
-	{
-		Id:    2,
-		Name:  "Kecap",
-		Price: 7500,
-		Stock: 12,
-	},
-}
 
 type ProductRequest struct {
 	Name  string `json:"name"`
@@ -35,11 +18,31 @@ type ProductRequest struct {
 }
 
 func ProductHandler(w http.ResponseWriter, r *http.Request) {
-
 	switch r.Method {
 	case "GET":
+		db, err := db.DBConnection()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		coll := db.MongoDB.Collection("product")
+		cur, err := coll.Find(context.TODO(), bson.D{})
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		var prodList []*model.Product
+
+		for cur.Next(context.TODO()) {
+			var prod model.Product
+			cur.Decode(&prod)
+			prodList = append(prodList, &prod)
+		}
+
 		w.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(ProdList)
+		json.NewEncoder(w).Encode(prodList)
 		return
 
 	case "POST":
@@ -51,16 +54,27 @@ func ProductHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		p := Product{
-			Id:    int(rand.Uint32()),
+		db, err := db.DBConnection()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		coll := db.MongoDB.Collection("product")
+
+		_, err = coll.InsertOne(context.TODO(), model.Product{
+			ID:    primitive.NewObjectID(),
 			Name:  data.Name,
 			Price: data.Price,
-			Stock: data.Stock,
+			Stock: int(data.Stock),
+		})
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
 
-		ProdList = append(ProdList, &p)
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("product added successfully"))
+		w.Write([]byte("Data added successfully"))
 
 		return
 	default:
