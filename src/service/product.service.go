@@ -2,12 +2,15 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 	"log"
 
 	"github.com/PetrusAriaa/go-backend-pelatihan-kmteti/src/db"
 	"github.com/PetrusAriaa/go-backend-pelatihan-kmteti/src/model"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Product struct {
@@ -17,6 +20,11 @@ type Product struct {
 
 type ProductResponse struct {
 	Data []*Product `json:"data"`
+}
+
+type ProductRequest struct {
+	Name  string `json:"name"`
+	Price int    `json:"price"`
 }
 
 func GetAllProduct() (*ProductResponse, error) {
@@ -46,4 +54,31 @@ func GetAllProduct() (*ProductResponse, error) {
 	return &ProductResponse{
 		Data: prodList,
 	}, nil
+}
+
+func CreateProduct(req io.Reader) error {
+	var prodReq ProductRequest
+	err := json.NewDecoder(req).Decode(&prodReq)
+	if err != nil {
+		return errors.New("bad request")
+	}
+
+	db, err := db.DBConnection()
+	if err != nil {
+		log.Default().Println(err.Error())
+		return errors.New("internal server error")
+	}
+
+	coll := db.MongoDB.Collection("product")
+	_, err = coll.InsertOne(context.TODO(), model.Product{
+		ID:    primitive.NewObjectID(),
+		Name:  prodReq.Name,
+		Price: prodReq.Price,
+		Stock: 0,
+	})
+	if err != nil {
+		log.Default().Println(err.Error())
+		return errors.New("internal server error")
+	}
+	return nil
 }
