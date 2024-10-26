@@ -1,4 +1,4 @@
-package handler
+package controller
 
 import (
 	"context"
@@ -17,7 +17,7 @@ type ProductRequest struct {
 	Stock uint8  `json:"stock"`
 }
 
-func ProductHandler(w http.ResponseWriter, r *http.Request) {
+func ProductController(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		db, err := db.DBConnection()

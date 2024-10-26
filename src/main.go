@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/PetrusAriaa/go-backend-pelatihan-kmteti/src/handler"
+	handler "github.com/PetrusAriaa/go-backend-pelatihan-kmteti/api"
 )
 
 func main() {
