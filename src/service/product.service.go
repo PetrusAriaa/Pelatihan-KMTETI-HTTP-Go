@@ -33,6 +33,7 @@ func GetAllProduct() (*ProductResponse, error) {
 		log.Default().Println(err.Error())
 		return nil, errors.New("internal server error")
 	}
+	defer db.MongoDB.Client().Disconnect(context.TODO())
 
 	coll := db.MongoDB.Collection("product")
 	cur, err := coll.Find(context.TODO(), bson.D{})
@@ -68,6 +69,7 @@ func CreateProduct(req io.Reader) error {
 		log.Default().Println(err.Error())
 		return errors.New("internal server error")
 	}
+	defer db.MongoDB.Client().Disconnect(context.TODO())
 
 	coll := db.MongoDB.Collection("product")
 	_, err = coll.InsertOne(context.TODO(), model.Product{
